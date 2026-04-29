@@ -170,6 +170,23 @@ the Dockerfile, the Apify Actor environment, or any config that gets shipped
 publicly. The other seven tools work without a key, so leaving it unset is a
 safe default.
 
+## Persistence by deployment shape
+
+This matters — different ways to run the server have different persistence
+guarantees. Pick the shape that matches your workload.
+
+| Deployment | Persistence | Lost when |
+|---|---|---|
+| Claude Desktop / Smithery local / direct stdio | **Fully persistent on local disk.** SQLite file lives at `scratchpad.db` next to the project. State survives reboots, crashes, anything short of you deleting the file. | You delete the file. |
+| **Apify hosted (standby mode)** | **Session-scoped.** State persists across requests *within a hot Actor instance*. Lost on cold start. | Actor instance recycles: idle for >`Idle timeout` seconds, hits `Max requests per run` budget, or you redeploy. |
+| Smithery hosted (planned) | TBD — pending Smithery's persistent volume support. |  |
+
+The Apify shape is great for **single-task agent sessions** (agent runs for a
+few minutes, makes dozens of tool calls, scratchpad persists across all of
+them). It's not the right fit for **long-term cross-session memory** (agent
+wants to read back something it wrote yesterday). For that, use the local
+install today, or wait for v0.2.0 — the roadmap below tracks that work.
+
 ## How storage works
 
 A single SQLite file holds everything:
@@ -188,10 +205,15 @@ caller asking for the diff, not by every writer.
 
 ## Roadmap
 
-- [ ] Apify packaging for pay-per-call billing.
+- [x] Apify packaging for pay-per-call billing.
+- [x] HTTP/SSE transport for hosted deploys.
+- [ ] **Cross-cold-start persistence on Apify.** Sync the SQLite file to
+      Apify's Key-Value Store on writes / shutdown so state survives instance
+      recycles. Targeted for v0.2.0.
+- [ ] **Hosted backend option.** Wire libSQL/Turso (SQLite-compatible,
+      hosted) as an alternative to local SQLite — gets us long-term
+      persistence on hosted deploys without the KV-store gymnastics.
 - [ ] Derive `agent_id` from API key instead of taking it as a parameter.
-- [ ] Postgres backend (the SQLite schema is portable; this is a connection
-      swap, not a rewrite).
 - [ ] Per-agent rate limiting.
 - [ ] Structured logging for ops visibility.
 
