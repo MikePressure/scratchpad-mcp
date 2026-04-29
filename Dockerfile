@@ -27,4 +27,10 @@ COPY --from=build /app/node_modules ./node_modules
 ENV SCRATCHPAD_DB_PATH=/data/scratchpad.db
 RUN mkdir -p /data
 
-ENTRYPOINT ["node", "dist/index.js"]
+# Launcher that maps Apify's per-run input to ANTHROPIC_API_KEY before
+# starting the server. Falls back to plain `node dist/index.js` if no
+# input file exists, so non-Apify Docker users see identical behavior.
+COPY .actor/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]

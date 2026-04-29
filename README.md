@@ -119,6 +119,23 @@ to `scratchpad.db` in the project root.
 Restart Claude Desktop. The server should appear in the MCP servers list with
 8 tools.
 
+## Who pays for `summarize_file`?
+
+The caller. Always.
+
+- **Local install (Smithery, Claude Desktop, mcp.so):** the user provides
+  their own `ANTHROPIC_API_KEY` in their config. Their machine, their key,
+  their bill.
+- **Apify hosted:** every Actor run reads `anthropicApiKey` from its per-run
+  input. A `.actor/entrypoint.sh` launcher maps that into the env before
+  starting the server. Each caller pays Anthropic for their own summaries;
+  the Actor publisher only collects Apify's per-call fee.
+
+If you fork this and intend to host it, do **not** hardcode an API key into
+the Dockerfile, the Apify Actor environment, or any config that gets shipped
+publicly. The other seven tools work without a key, so leaving it unset is a
+safe default.
+
 ## How storage works
 
 A single SQLite file holds everything:
