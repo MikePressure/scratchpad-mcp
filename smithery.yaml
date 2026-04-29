@@ -1,0 +1,30 @@
+# Smithery configuration for scratchpad-mcp.
+# https://smithery.ai/docs/build/project-config
+
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties:
+      anthropicApiKey:
+        type: string
+        title: Anthropic API Key
+        description: >
+          Required only if you intend to call summarize_file. The other seven
+          tools work without it. Get a key at console.anthropic.com.
+      scratchpadDbPath:
+        type: string
+        title: SQLite database path
+        description: >
+          Optional. Where the SQLite database file lives. Defaults to
+          ./scratchpad.db relative to the server's working directory.
+    additionalProperties: false
+  commandFunction: |-
+    (config) => ({
+      command: "node",
+      args: ["dist/index.js"],
+      env: {
+        ANTHROPIC_API_KEY: config.anthropicApiKey,
+        SCRATCHPAD_DB_PATH: config.scratchpadDbPath
+      }
+    })

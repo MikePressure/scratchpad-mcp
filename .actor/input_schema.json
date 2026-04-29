@@ -1,0 +1,15 @@
+{
+  "title": "Scratchpad MCP input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "anthropicApiKey": {
+      "title": "Anthropic API Key",
+      "type": "string",
+      "description": "Required only if you intend to call summarize_file. The other seven tools work without it.",
+      "editor": "textfield",
+      "isSecret": true
+    }
+  },
+  "required": []
+}

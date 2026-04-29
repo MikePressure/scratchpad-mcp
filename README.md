@@ -1,7 +1,16 @@
 # scratchpad-mcp
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
+[![MCP](https://img.shields.io/badge/MCP-compatible-blue.svg)](https://modelcontextprotocol.io)
+
 Persistent, token-efficient storage for AI agents. An MCP server that stops your
 agents from re-reading the same files and re-loading the same context every turn.
+
+```text
+agent: "what changed in this file since I last read it?"
+server: { diff: [...], current_version: 14 }   ← not the whole file
+```
 
 ## Why
 
@@ -137,4 +146,4 @@ caller asking for the diff, not by every writer.
 
 ## License
 
-TBD.
+MIT — see [LICENSE](./LICENSE).
