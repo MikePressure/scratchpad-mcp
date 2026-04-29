@@ -27,6 +27,11 @@ COPY --from=build /app/node_modules ./node_modules
 ENV SCRATCHPAD_DB_PATH=/data/scratchpad.db
 RUN mkdir -p /data
 
+# Hosted deploys (Apify, etc.) use HTTP transport. Local Docker users can
+# override by passing `-e MCP_TRANSPORT=stdio` and `-i` if they want stdio.
+ENV MCP_TRANSPORT=http
+EXPOSE 4321
+
 # Launcher that maps Apify's per-run input to ANTHROPIC_API_KEY before
 # starting the server. Falls back to plain `node dist/index.js` if no
 # input file exists, so non-Apify Docker users see identical behavior.

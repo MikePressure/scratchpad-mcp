@@ -2,13 +2,29 @@
   "actorSpecification": 1,
   "name": "scratchpad-mcp",
   "title": "Scratchpad MCP — persistent storage for AI agents",
-  "description": "An MCP server that gives AI agents persistent, token-efficient storage. Write versioned files, read structured diffs since a prior version, append to logs, and summarize long documents — all per-agent isolated.",
+  "description": "An MCP server that gives AI agents persistent, token-efficient storage. Versioned files, structured diffs, append-only logs, on-demand summaries — all per-agent isolated.",
   "version": "0.1",
   "buildTag": "latest",
   "dockerfile": "../Dockerfile",
   "input": "./input_schema.json",
   "categories": ["AI", "DEVELOPER_TOOLS"],
-  "meta": {
-    "templateId": "ts-mcp-server"
-  }
+  "webServerSchema": {
+    "openapi": "3.0.0",
+    "info": { "title": "scratchpad-mcp", "version": "0.1" },
+    "paths": {
+      "/mcp": {
+        "post": {
+          "summary": "MCP endpoint (Streamable HTTP transport, stateless)",
+          "responses": { "200": { "description": "OK" } }
+        }
+      },
+      "/health": {
+        "get": {
+          "summary": "Health check",
+          "responses": { "200": { "description": "OK" } }
+        }
+      }
+    }
+  },
+  "webServerMcpPath": "/mcp"
 }
