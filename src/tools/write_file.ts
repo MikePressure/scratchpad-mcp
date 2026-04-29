@@ -1,6 +1,10 @@
 import { getDb, recordOperation } from "../db.js";
 import { validatePath, validateAgentId } from "../validate.js";
-import { assertContentSize } from "../limits.js";
+import {
+  assertContentSize,
+  MAX_FILES_PER_AGENT,
+  MAX_TOTAL_BYTES_PER_AGENT,
+} from "../limits.js";
 
 const MAX_VERSIONS_PER_FILE = 10;
 
@@ -62,6 +66,38 @@ export function handleWriteFile(args: WriteFileArgs): {
       .get(args.agent_id, args.path) as
       | { id: number; cur_version: number }
       | undefined;
+
+    // Multi-tenant quota checks. Only enforced when creating a new file or
+    // when the new content would push the agent over the byte budget.
+    if (!existing) {
+      const fileCount = (
+        db.prepare("SELECT COUNT(*) AS n FROM files WHERE agent_id = ?")
+          .get(args.agent_id) as { n: number }
+      ).n;
+      if (fileCount >= MAX_FILES_PER_AGENT) {
+        throw new Error(
+          `Quota: agent has ${fileCount} files (max ${MAX_FILES_PER_AGENT}). ` +
+            `Delete files before creating new ones.`
+        );
+      }
+    }
+    const usedBytes = (
+      db
+        .prepare(
+          `SELECT COALESCE(SUM(LENGTH(v.content)), 0) AS bytes
+           FROM file_versions v JOIN files f ON f.id = v.file_id
+           WHERE f.agent_id = ?`
+        )
+        .get(args.agent_id) as { bytes: number }
+    ).bytes;
+    const newBytes = Buffer.byteLength(args.content, "utf8");
+    if (usedBytes + newBytes > MAX_TOTAL_BYTES_PER_AGENT) {
+      throw new Error(
+        `Quota: write would exceed per-agent storage cap of ` +
+          `${MAX_TOTAL_BYTES_PER_AGENT} bytes (currently ${usedBytes}, ` +
+          `attempted to add ${newBytes}).`
+      );
+    }
 
     let fileId: number;
     let newVersion: number;

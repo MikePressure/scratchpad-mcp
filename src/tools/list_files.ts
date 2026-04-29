@@ -63,8 +63,11 @@ export function handleListFiles(args: ListFilesArgs): {
 
   const db = getDb();
 
-  // Join with file_versions to get the byte size of the current version.
-  // LIKE with a literal prefix is safe here because we've validated the chars.
+  // Use SUBSTR equality instead of LIKE: LIKE has wildcards (`%` and `_`) and
+  // is case-insensitive for ASCII by default in SQLite, neither of which we
+  // want for a prefix filter. SUBSTR(path, 1, LENGTH(prefix)) = prefix is
+  // pure binary equality on the leading bytes — no wildcards, fully case
+  // sensitive, no escaping needed.
   const rows = db
     .prepare(
       `SELECT
@@ -76,10 +79,10 @@ export function handleListFiles(args: ListFilesArgs): {
        FROM files f
        JOIN file_versions v ON v.file_id = f.id AND v.version = f.cur_version
        WHERE f.agent_id = ?
-         AND f.path LIKE ? || '%'
+         AND SUBSTR(f.path, 1, LENGTH(?)) = ?
        ORDER BY f.path ASC`
     )
-    .all(args.agent_id, prefix) as FileRow[];
+    .all(args.agent_id, prefix, prefix) as FileRow[];
 
   recordOperation(args.agent_id);
 

@@ -1,6 +1,6 @@
 import { getDb, recordOperation } from "../db.js";
 import { validatePath, validateAgentId } from "../validate.js";
-import { assertLogEntrySize } from "../limits.js";
+import { assertLogEntrySize, MAX_LOG_ENTRIES_PER_AGENT } from "../limits.js";
 
 export const appendLogSchema = {
   name: "append_log",
@@ -39,6 +39,19 @@ export function handleAppendLog(args: AppendLogArgs): {
 
   const db = getDb();
   const now = Date.now();
+
+  // Multi-tenant quota: cap total log entries per agent.
+  const existingCount = (
+    db
+      .prepare("SELECT COUNT(*) AS n FROM log_entries WHERE agent_id = ?")
+      .get(args.agent_id) as { n: number }
+  ).n;
+  if (existingCount >= MAX_LOG_ENTRIES_PER_AGENT) {
+    throw new Error(
+      `Quota: agent has ${existingCount} log entries ` +
+        `(max ${MAX_LOG_ENTRIES_PER_AGENT}).`
+    );
+  }
 
   const result = db
     .prepare(

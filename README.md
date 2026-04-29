@@ -119,6 +119,40 @@ to `scratchpad.db` in the project root.
 Restart Claude Desktop. The server should appear in the MCP servers list with
 8 tools.
 
+## Security model — read this before hosting
+
+`agent_id` is a **plaintext tool parameter**. There is no authentication: a
+caller can claim to be any `agent_id`, and the server will trust it. This is
+deliberate for V1 and works fine for the intended deployment shape, which is:
+
+- **One-user-per-server-process.** The agent and the SQLite file share a
+  trust boundary. Examples: Claude Desktop install, Smithery local install,
+  per-user Apify Actor run (Apify spawns a fresh container with a fresh
+  database file per run by default).
+
+It is **not safe** for:
+
+- **Multi-tenant standby mode** where one server process serves multiple
+  untrusted callers reading and writing the same SQLite file. Anyone can
+  pass another caller's `agent_id` and read or overwrite their data.
+
+If you want multi-tenant, derive `agent_id` from the caller's API key in a
+wrapper layer (this is the V2 plan) or run one process per tenant.
+
+### Defense in depth that *is* in place
+
+- All SQL is parameterized — no injection possible via path, agent_id, or
+  prefix.
+- Path validation rejects `..`, leading `/`, spaces, and any character
+  outside `[a-zA-Z0-9/_.-]`.
+- `list_files` prefix matching uses `SUBSTR` equality (not `LIKE`) so the SQL
+  wildcards `_` and `%` never apply, and matching is case-sensitive.
+- Per-call size caps (1 MB / file, 64 KB / log entry).
+- Per-agent quotas (1000 files, 100k log entries, 100 MB total) so a runaway
+  agent can't exhaust shared disk on a hosted deploy.
+- Errors return only `err.message` — no stack traces, no SQLite paths, no
+  API keys.
+
 ## Who pays for `summarize_file`?
 
 The caller. Always.
